@@ -92,9 +92,9 @@ def openFile(file_text):
         content = file.read()
     file_text.set(content)   
 
-def print_file(file_content):
-    print(file_content)
-    ttk.Label(mainframe,textvariable=file_content).grid(column=2,row=0,sticky=(E))
+def clear_data():
+    canvas.delete("all")
+    file_content.set("")
 
 # Main Tkinter window
 root = tk.Tk()
@@ -102,16 +102,25 @@ file_content= tk.StringVar()
 mainframe = ttk.Frame(root, padding=(3, 3, 12, 12))
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 
-canvas = tk.Canvas(mainframe, width=1000, height=500, bg="white")
-canvas.grid(column=0,row=1,sticky=(N,W,E,S))
+tree_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
+tree_frame.grid(column=1, row=0, sticky=(N, E, S))
 
+input_file_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
+input_file_frame.grid(column=0, row=0, sticky=(N, W, S))
+
+canvas = tk.Canvas(tree_frame, width=1000, height=500, bg="white")
+canvas.grid(column=0,row=1,sticky=(N,W,E,S))
 tree_width = compute_width(AST) * 120
 draw_tree(canvas, AST, 500, 80, tree_width)
 
-button = ttk.Button(mainframe,text="choose file", command= lambda: openFile(file_content))
-button.grid(column=1,row=0,sticky=E)
 
-file_label = ttk.Label(mainframe, textvariable=file_content,background="white")
-file_label.grid(column=1, row=1, sticky=E)
+choose_file_button = ttk.Button(input_file_frame,text="choose file", command= lambda: openFile(file_content),padding=(3))
+choose_file_button.grid(column=0,row=0,sticky=(N,W))
+
+clear_button = ttk.Button(input_file_frame,text="clear", command= lambda: clear_data(),padding=(3))
+clear_button.grid(column=1,row=0,sticky=(N,E))
+
+file_label = ttk.Label(input_file_frame, textvariable=file_content,background="white",padding=(3))
+file_label.grid(column=0, row=1, sticky=(N, W, S))
 
 root.mainloop()
