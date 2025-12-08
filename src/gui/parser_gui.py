@@ -90,37 +90,66 @@ def openFile(file_text):
         return
     with open(filepath, 'r') as file:
         content = file.read()
-    file_text.set(content)   
+    file_text.delete("1.0", tk.END)
+    file_text.insert(tk.END, content)
 
 def clear_data():
     canvas.delete("all")
-    file_content.set("")
+    file_text.delete("1.0", tk.END)
 
-# Main Tkinter window
-root = tk.Tk()
-file_content= tk.StringVar() 
+
+################################### Main Tkinter window ####################################
+root = tk.Tk() 
 mainframe = ttk.Frame(root, padding=(3, 3, 12, 12))
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 
 tree_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
-tree_frame.grid(column=1, row=0, sticky=(N, E, S))
+tree_frame.grid(column=1, row=0, sticky=(N, E,W, S))
 
 input_file_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
-input_file_frame.grid(column=0, row=0, sticky=(N, W, S))
+input_file_frame.grid(column=0, row=0, sticky=(N, E,W, S))
 
 canvas = tk.Canvas(tree_frame, width=1000, height=500, bg="white")
-canvas.grid(column=0,row=1,sticky=(N,W,E,S))
+canvas.grid(column=0,row=1,sticky="nsew")
+
+
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+
+mainframe.columnconfigure(0, weight=1)  
+mainframe.columnconfigure(1, weight=3)  
+mainframe.rowconfigure(0, weight=1)
+
+
+tree_frame.columnconfigure(0, weight=1)
+tree_frame.rowconfigure(1, weight=1)
+
+
+input_file_frame.columnconfigure(0, weight=1)
+input_file_frame.columnconfigure(1, weight=1)
+input_file_frame.rowconfigure(1, weight=1)
+
 tree_width = compute_width(AST) * 120
 draw_tree(canvas, AST, 500, 80, tree_width)
 
 
-choose_file_button = ttk.Button(input_file_frame,text="choose file", command= lambda: openFile(file_content),padding=(3))
-choose_file_button.grid(column=0,row=0,sticky=(N,W))
+################# Input file content and scrollbar ########################
+file_frame = ttk.Frame(input_file_frame)
+file_frame.grid(column=0, row=1, columnspan=2, sticky="nsew", pady=(10,0))
+
+file_text = tk.Text(file_frame, width=40, height=15, wrap="word")
+file_text.pack(side="left", fill="both", expand=True)
+scrollbar = ttk.Scrollbar(file_frame, orient="vertical", command=file_text.yview)
+scrollbar.pack(side="right", fill="y")
+file_text.config(yscrollcommand=scrollbar.set)
+
+
+####################### Buttons ################################33
+choose_file_button = ttk.Button(input_file_frame,text="choose file", command= lambda: openFile(file_text),padding=(3))
+choose_file_button.grid(column=0,row=0,sticky=(N,W), padx=(0,10))
 
 clear_button = ttk.Button(input_file_frame,text="clear", command= lambda: clear_data(),padding=(3))
 clear_button.grid(column=1,row=0,sticky=(N,E))
 
-file_label = ttk.Label(input_file_frame, textvariable=file_content,background="white",padding=(3))
-file_label.grid(column=0, row=1, sticky=(N, W, S))
 
 root.mainloop()
