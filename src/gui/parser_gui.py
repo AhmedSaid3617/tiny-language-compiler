@@ -3,86 +3,209 @@ from tkinter import ttk
 from tkinter import filedialog
 import tkinter as tk
 
-AST = {
-    "type": "FunctionDefinition",
-    "children": [
-        {"type": "Declaration", "children": []},
-        {
-            "type": "WhileStatement",
-            "children": [
-                {"type": "BinaryExpression", "children": []},
-                {
-                    "type": "Assignment",
-                    "children": [
-                        {"type": "Identifier", "children": []},
-                        {"type": "BinaryExpression", "children": []}
-                    ]
+# Example ASTs
+IF_AST = {
+    "type": "IfStatement",
+    "test": {
+        "type": "BinaryExpression",
+        "operator": ">",
+        "left": {"type": "Identifier", "name": "x"},
+        "right": {"type": "Literal",  "value": 0}
+    },
+    "then": {
+        "type": "Block",
+        "statements": [
+            {
+                "type": "Assignment",
+                "identifier": "y",
+                "value": {
+                    "type": "BinaryExpression",
+                    "operator": "+",
+                    "left": {"type": "Identifier", "name": "y"},
+                    "right": {"type": "Literal", "value": 1}
                 }
-            ]
-        },
-        {
-            "type": "IfStatement",
-            "children": [
-                {"type": "BinaryExpression", "children": []},
-                {"type": "FunctionCall", "children": []}
-            ]
-        }
-    ]
+            }
+        ]
+    },
+    "else": {
+        "type": "Block",
+        "statements": [
+            {
+                "type": "Assignment",
+                "identifier": "y",
+                "value": {"type": "Literal", "value": 0}
+            }
+        ]
+    }
 }
 
+REPEAT_AST = {
+    "type": "RepeatStatement",
+    "body": {
+        "type": "Block",
+        "statements": [
+            {
+                "type": "Assignment",
+                "identifier": "x",
+                "value": {
+                    "type": "BinaryExpression",
+                    "operator": "-",
+                    "left": {"type": "Identifier", "name": "x"},
+                    "right": {"type": "Literal", "value": 1}
+                }
+            }
+        ]
+    },
+    "test": {
+        "type": "BinaryExpression",
+        "operator": "==",
+        "left": {"type": "Identifier", "name": "x"},
+        "right": {"type": "Literal", "value": 0}
+    }
+}
+
+AST = {
+    "type": "Block",
+    "statements": [ IF_AST, REPEAT_AST ]
+}
+
+################################### AST drawing ####################################
 NODE_SHAPES = {
-    "FunctionDefinition": "rect",
-    "Declaration": "rect",
+    "IfStatement": "rect",
+    "RepeatStatement": "rect",
     "Assignment": "rect",
-    "BinaryExpression": "circle",
+    "Block": "rect",
+    "BinaryExpression": "oval",
+    "Literal": "oval",
+    "Identifier": "oval",
     "FunctionCall": "oval",
-    "Identifier": "text",
-    "IfStatement": "diamond",
-    "WhileStatement": "oval"
 }
 
-def compute_width(node):
-    if not node["children"]:
+# --- compute subtree size (for layout) ---
+def subtree_size(node):
+    t = node.get("type")
+    if t in ("Literal", "Identifier"):
         return 1
-    return sum(compute_width(c) for c in node["children"])
+    elif t == "BinaryExpression":
+        return subtree_size(node["left"]) + subtree_size(node["right"])
+    elif t == "IfStatement":
+        s = subtree_size(node["test"]) + subtree_size(node["then"])
+        if node.get("else"):
+            s += subtree_size(node["else"])
+        return s
+    elif t == "RepeatStatement":
+        return subtree_size(node["body"]) + subtree_size(node["test"])
+    elif t == "Assignment":
+        return subtree_size(node["value"])
+    elif t == "Block":
+        total = 0
+        for stmt in node.get("statements", []):
+            total += subtree_size(stmt)
+        return total or 1
+    else:
+        return 1
 
-def draw_tree(canvas, node, x, y, width):
-    shape = NODE_SHAPES.get(node["type"], "rect")
-    draw_node(canvas, x, y, node["type"], shape)
+# --- draw a single node (shape + label) ---
+def draw_node(canvas, x, y, label, shape):
+    if shape == "rect":
+        w, h = 160, 40
+        canvas.create_rectangle(x - w/2, y - h/2, x + w/2, y + h/2,
+                                fill="#cce", outline="black")
+    elif shape == "oval":
+        w, h = 80, 30
+        canvas.create_oval(x - w/2, y - h/2, x + w/2, y + h/2,
+                           fill="#cec", outline="black")
+    else:
+        w, h = 100, 40
+        canvas.create_rectangle(x - w/2, y - h/2, x + w/2, y + h/2,
+                                fill="#eee", outline="black")
+    canvas.create_text(x, y, text=label)
 
-    # Position children
-    if not node["children"]:
+# --- main recursive AST drawing ---
+def draw_ast(canvas, node, x, y, width):
+    t = node.get("type")
+
+    if t == "Block":
+        stmts = node.get("statements", [])
+        if not stmts:
+            return
+
+        total = sum(subtree_size(s) for s in stmts)
+        slot = width / total
+
+        positions = []
+        curr_x = x - width/2 + slot/2
+
+        for stmt in stmts:
+            w = subtree_size(stmt) * slot
+            cx = curr_x + (w - slot)/2
+            positions.append(cx)
+
+            draw_ast(canvas, stmt, cx, y, w)
+            curr_x += w
+
+        # Draw sibling statements pointers
+        if len(positions) > 1:
+            arrow_y = y + 5  
+            for i in range(len(positions)-1):
+                x1 = positions[i]
+                x2 = positions[i+1]
+                canvas.create_line(x1 + 65, arrow_y, x2 - 65, arrow_y, arrow=tk.LAST)
+
         return
 
-    step = width / len(node["children"])
-    child_x = x - width/2 + step/2
-    child_y = y + 120
+    if t == "BinaryExpression":
+        label = node.get("operator", "op")
+    elif t == "Literal":
+        label = str(node.get("value"))
+    elif t == "Identifier":
+        label = node.get("name")
+    elif t == "Assignment":
+        label = f"assign({node.get('identifier')})"
+    else:
+        label = t
 
-    for child in node["children"]:
-        child_width = compute_width(child) * 120
+    shape = NODE_SHAPES.get(t, "rect")
+    draw_node(canvas, x, y, label, shape)
 
-        canvas.create_line(x, y+40, child_x, child_y-40)
+    child_y = y + 100  # vertical offset for children
 
-        draw_tree(canvas, child, child_x, child_y, child_width)
-        child_x += child_width
+    # gather children according to type
+    children = []
+    if t == "IfStatement":
+        children = [node["test"], node["then"]]
+        if node.get("else"):
+            children.append(node["else"])
+    elif t == "RepeatStatement":
+        children = [node["body"], node["test"]]
+    elif t == "BinaryExpression":
+        children = [node["left"], node["right"]]
+    elif t == "Assignment":
+        children = [node["value"]]
+    else:
+        children = []
+
+    if not children:
+        return
+
+    total = sum(subtree_size(c) for c in children)
+    slot = width / total
+
+    curr_x = x - width/2 + slot/2
+    positions = []
+
+    for child in children:
+        w = subtree_size(child) * slot
+        cx = curr_x + (w - slot)/2
+        positions.append(cx)
+
+        # draw parent → child vertical line
+        canvas.create_line(x, y + (20 if shape=="rect" else 15), cx, child_y - 20)
+
+        draw_ast(canvas, child, cx, child_y, w)
+        curr_x += w
 
 
-def draw_node(canvas, x, y, text, shape):
-    if shape == "rect":
-        canvas.create_rectangle(x-50, y-25, x+50, y+25, fill="#aee")
-    elif shape == "oval":
-        canvas.create_oval(x-50, y-25, x+50, y+25, fill="#aea")
-    elif shape == "circle":
-        canvas.create_oval(x-30, y-30, x+30, y+30, fill="#fea")
-    elif shape == "diamond":
-        canvas.create_polygon(
-            x, y-35,
-            x+60, y,
-            x, y+35,
-            x-60, y,
-            fill="#fc9"
-        )
-    canvas.create_text(x, y, text=text)
 
 def openFile(file_text):
     filepath = filedialog.askopenfilename()
@@ -99,7 +222,8 @@ def clear_data():
 
 
 ################################### Main Tkinter window ####################################
-root = tk.Tk() 
+root = tk.Tk()
+root.title("Tiny language parser") 
 mainframe = ttk.Frame(root, padding=(3, 3, 12, 12))
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 
@@ -129,9 +253,6 @@ input_file_frame.columnconfigure(0, weight=1)
 input_file_frame.columnconfigure(1, weight=1)
 input_file_frame.rowconfigure(1, weight=1)
 
-tree_width = compute_width(AST) * 120
-draw_tree(canvas, AST, 500, 80, tree_width)
-
 
 ################# Input file content and scrollbar ########################
 file_frame = ttk.Frame(input_file_frame)
@@ -144,12 +265,16 @@ scrollbar.pack(side="right", fill="y")
 file_text.config(yscrollcommand=scrollbar.set)
 
 
-####################### Buttons ################################33
+################################ Buttons ################################
 choose_file_button = ttk.Button(input_file_frame,text="choose file", command= lambda: openFile(file_text),padding=(3))
 choose_file_button.grid(column=0,row=0,sticky=(N,W), padx=(0,10))
 
 clear_button = ttk.Button(input_file_frame,text="clear", command= lambda: clear_data(),padding=(3))
 clear_button.grid(column=1,row=0,sticky=(N,E))
 
+ast_to_draw = AST 
+
+full_width = subtree_size(ast_to_draw) * 150
+draw_ast(canvas, ast_to_draw, 500, 50, full_width)
 
 root.mainloop()

@@ -1,4 +1,12 @@
-int main (){
-    printf("hello");
-    return 0;
+int main(){
+    int x = 0;
+    int y = 10;
+
+    while(y > x) {
+        x = x + 1;
+    }
+
+    if(x == y) {
+        print(x);
+    }
 }
