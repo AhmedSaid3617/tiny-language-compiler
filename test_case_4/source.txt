@@ -1,0 +1,21 @@
+{ Program to calculate integer division and remainder }
+read dividend;
+read divisor;
+quotient := 0;
+
+if 0 < divisor then
+  repeat
+    if divisor < dividend then
+      dividend := dividend - divisor;
+      quotient := quotient + 1
+    else
+      { Handle the case where they are equal or we are done }
+      if dividend = divisor then
+        dividend := dividend - divisor;
+        quotient := quotient + 1
+      end
+    end
+  until dividend < divisor;
+  write quotient;
+  write dividend
+end

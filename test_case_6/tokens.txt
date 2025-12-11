@@ -1,0 +1,40 @@
+TINY Language Scanner Output
+=============================
+
+Token Value         Token Type          
+----------------------------------------
+read                READ                
+x                   IDENTIFIER          
+;                   SEMICOLON           
+read                READ                
+y                   IDENTIFIER          
+;                   SEMICOLON           
+read                READ                
+z                   IDENTIFIER          
+;                   SEMICOLON           
+if                  IF                  
+x                   IDENTIFIER          
++                   PLUS                
+z                   IDENTIFIER          
+*                   MULT                
+2                   NUMBER              
+<                   LESSTHAN            
+y                   IDENTIFIER          
+then                THEN                
+write               WRITE               
+1                   NUMBER              
+else                ELSE                
+if                  IF                  
+y                   IDENTIFIER          
+<                   LESSTHAN            
+x                   IDENTIFIER          
+then                THEN                
+write               WRITE               
+2                   NUMBER              
+else                ELSE                
+write               WRITE               
+3                   NUMBER              
+end                 END                 
+end                 END                 
+
+Total tokens: 33

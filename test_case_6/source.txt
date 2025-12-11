@@ -1,0 +1,17 @@
+{ Complex nesting and precedence test }
+read x;
+read y;
+read z;
+
+{ Precedence check: z * 2 should happen before x + ... }
+if x + z * 2 < y then
+  write 1
+else
+  { Nested IF without a semicolon after the previous 'else' }
+  if y < x then
+    write 2
+  else
+    { The language only supports < and =, so we use !(x<y) and !(y<x) implies x=y }
+    write 3
+  end
+end

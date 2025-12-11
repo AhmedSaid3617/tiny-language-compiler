@@ -1,0 +1,14 @@
+{ Compute the first N Fibonacci numbers }
+read n;
+a := 0;
+b := 1;
+write a;
+write b;
+
+repeat
+  temp := a + b;
+  write temp;
+  a := b;
+  b := temp;
+  n := n - 1
+until n = 2 { Stop when counter reaches 2 }

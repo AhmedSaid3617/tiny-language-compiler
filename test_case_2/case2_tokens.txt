@@ -1,0 +1,18 @@
+TINY Language Scanner Output
+=============================
+
+Token Value         Token Type          
+----------------------------------------
+read                READ                
+x                   IDENTIFIER          
+;                   SEMICOLON           
+x                   IDENTIFIER          
+:=                  ASSIGN              
+x                   IDENTIFIER          
++                   PLUS                
+1                   NUMBER              
+;                   SEMICOLON           
+write               WRITE               
+x                   IDENTIFIER          
+
+Total tokens: 11

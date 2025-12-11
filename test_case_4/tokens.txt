@@ -1,0 +1,69 @@
+TINY Language Scanner Output
+=============================
+
+Token Value         Token Type          
+----------------------------------------
+read                READ                
+dividend            IDENTIFIER          
+;                   SEMICOLON           
+read                READ                
+divisor             IDENTIFIER          
+;                   SEMICOLON           
+quotient            IDENTIFIER          
+:=                  ASSIGN              
+0                   NUMBER              
+;                   SEMICOLON           
+if                  IF                  
+0                   NUMBER              
+<                   LESSTHAN            
+divisor             IDENTIFIER          
+then                THEN                
+repeat              REPEAT              
+if                  IF                  
+divisor             IDENTIFIER          
+<                   LESSTHAN            
+dividend            IDENTIFIER          
+then                THEN                
+dividend            IDENTIFIER          
+:=                  ASSIGN              
+dividend            IDENTIFIER          
+-                   MINUS               
+divisor             IDENTIFIER          
+;                   SEMICOLON           
+quotient            IDENTIFIER          
+:=                  ASSIGN              
+quotient            IDENTIFIER          
++                   PLUS                
+1                   NUMBER              
+else                ELSE                
+if                  IF                  
+dividend            IDENTIFIER          
+=                   EQUAL               
+divisor             IDENTIFIER          
+then                THEN                
+dividend            IDENTIFIER          
+:=                  ASSIGN              
+dividend            IDENTIFIER          
+-                   MINUS               
+divisor             IDENTIFIER          
+;                   SEMICOLON           
+quotient            IDENTIFIER          
+:=                  ASSIGN              
+quotient            IDENTIFIER          
++                   PLUS                
+1                   NUMBER              
+end                 END                 
+end                 END                 
+until               UNTIL               
+dividend            IDENTIFIER          
+<                   LESSTHAN            
+divisor             IDENTIFIER          
+;                   SEMICOLON           
+write               WRITE               
+quotient            IDENTIFIER          
+;                   SEMICOLON           
+write               WRITE               
+dividend            IDENTIFIER          
+end                 END                 
+
+Total tokens: 62
