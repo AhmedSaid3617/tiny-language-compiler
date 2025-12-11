@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 import tkinter as tk
+import tkinter.font as tkFont
+from src.parse.syntax_tree import ReadStatementNode, IdentifierNode, ConstantNode, OperatorNode, AssignmentStatementNode, WriteStatementNode, StatementSequence
 
 # Example ASTs
 IF_AST = {
@@ -66,10 +68,10 @@ REPEAT_AST = {
 
 AST = {
     "type": "Block",
-    "statements": [ IF_AST, REPEAT_AST ]
+    "statements": [ IF_AST, REPEAT_AST ,IF_AST]
 }
 
-################################### AST drawing ####################################
+# ################################### AST drawing ####################################
 NODE_SHAPES = {
     "IfStatement": "rect",
     "RepeatStatement": "rect",
@@ -105,26 +107,55 @@ def subtree_size(node):
     else:
         return 1
 
+def ast_depth(node):
+    t = node.get("type")
+    if t in ("Literal", "Identifier"):
+        return 1
+    elif t == "BinaryExpression":
+        return 1 + max(ast_depth(node["left"]), ast_depth(node["right"]))
+    elif t == "IfStatement":
+        d = [ast_depth(node["test"]), ast_depth(node["then"])]
+        if node.get("else"):
+            d.append(ast_depth(node["else"]))
+        return 1 + max(d)
+    elif t == "RepeatStatement":
+        return 1 + max(ast_depth(node["body"]), ast_depth(node["test"]))
+    elif t == "Assignment":
+        return 1 + ast_depth(node["value"])
+    elif t == "Block":
+        depths = [ast_depth(stmt) for stmt in node.get("statements", [])]
+        return 1 + (max(depths) if depths else 0)
+    else:
+        return 1
+
+def get_node_width_height(canvas, label, shape, scale=1.0):
+    font = tkFont.Font(family="TkDefaultFont", size=int(12*scale))
+    text_width = font.measure(label)
+    text_height = font.metrics("linespace")
+    pad_x = 20 * scale
+    pad_y = 10 * scale
+    w = text_width + pad_x * 2
+    h = text_height + pad_y * 2
+    return w, h, font
+
 # --- draw a single node (shape + label) ---
-def draw_node(canvas, x, y, label, shape):
+def draw_node(canvas, x, y, label, shape, scale=1.0):
+    w, h, font = get_node_width_height(canvas, label, shape, scale)
     if shape == "rect":
-        w, h = 160, 40
         canvas.create_rectangle(x - w/2, y - h/2, x + w/2, y + h/2,
                                 fill="#cce", outline="black")
-    elif shape == "oval":
-        w, h = 80, 30
+    else:
         canvas.create_oval(x - w/2, y - h/2, x + w/2, y + h/2,
                            fill="#cec", outline="black")
-    else:
-        w, h = 100, 40
-        canvas.create_rectangle(x - w/2, y - h/2, x + w/2, y + h/2,
-                                fill="#eee", outline="black")
-    canvas.create_text(x, y, text=label)
+
+    canvas.create_text(x, y, text=label, font=font)
+    return w, h
 
 # --- main recursive AST drawing ---
-def draw_ast(canvas, node, x, y, width):
+def draw_ast(canvas, node, x, y, width, scale=1.0, vscale=1.0, parent_x=None, parent_y=None, parent_shape=None):
     t = node.get("type")
 
+    # --- Block special handling ---
     if t == "Block":
         stmts = node.get("statements", [])
         if not stmts:
@@ -133,27 +164,34 @@ def draw_ast(canvas, node, x, y, width):
         total = sum(subtree_size(s) for s in stmts)
         slot = width / total
 
-        positions = []
         curr_x = x - width/2 + slot/2
+        positions = []
 
         for stmt in stmts:
             w = subtree_size(stmt) * slot
             cx = curr_x + (w - slot)/2
             positions.append(cx)
-
-            draw_ast(canvas, stmt, cx, y, w)
             curr_x += w
 
-        # Draw sibling statements pointers
+        # Sibling arrows
         if len(positions) > 1:
-            arrow_y = y + 5  
+            arrow_y = y + 100 * vscale
             for i in range(len(positions)-1):
-                x1 = positions[i]
-                x2 = positions[i+1]
-                canvas.create_line(x1 + 65, arrow_y, x2 - 65, arrow_y, arrow=tk.LAST)
+                canvas.create_line(positions[i] + 65*scale, arrow_y,
+                                   positions[i+1] - 65*scale, arrow_y, arrow=tk.LAST)
 
+        child_y = y + 100 * vscale
+        for i, stmt in enumerate(stmts):
+            cx = positions[i]
+            if parent_x is not None:
+                canvas.create_line(parent_x, parent_y + 20*scale,
+                                   cx, child_y - 20*scale, arrow=tk.LAST)
+
+            draw_ast(canvas, stmt, cx, child_y,
+                     subtree_size(stmt) * slot, scale, vscale)
         return
 
+    # Node label
     if t == "BinaryExpression":
         label = node.get("operator", "op")
     elif t == "Literal":
@@ -166,12 +204,16 @@ def draw_ast(canvas, node, x, y, width):
         label = t
 
     shape = NODE_SHAPES.get(t, "rect")
-    draw_node(canvas, x, y, label, shape)
+    draw_node(canvas, x, y, label, shape, scale)
 
-    child_y = y + 100  # vertical offset for children
+    # Parent → child arrow
+    if parent_x is not None:
+        canvas.create_line(parent_x, parent_y + 20*scale,
+                           x, y - 20*scale, arrow=tk.LAST)
 
-    # gather children according to type
-    children = []
+    # Children
+    child_y = y + 100 * vscale
+
     if t == "IfStatement":
         children = [node["test"], node["then"]]
         if node.get("else"):
@@ -190,35 +232,88 @@ def draw_ast(canvas, node, x, y, width):
 
     total = sum(subtree_size(c) for c in children)
     slot = width / total
-
     curr_x = x - width/2 + slot/2
-    positions = []
 
     for child in children:
         w = subtree_size(child) * slot
         cx = curr_x + (w - slot)/2
-        positions.append(cx)
 
-        # draw parent → child vertical line
-        canvas.create_line(x, y + (20 if shape=="rect" else 15), cx, child_y - 20)
+        draw_ast(canvas, child, cx, child_y, w, scale, vscale,
+                 parent_x=x, parent_y=y, parent_shape=shape)
 
-        draw_ast(canvas, child, cx, child_y, w)
         curr_x += w
 
+def fit_and_draw_ast(canvas, ast):
+    canvas.delete("all")
+    canvas.update_idletasks()
+    c_width = canvas.winfo_width()
+    c_height = canvas.winfo_height()
+
+    if c_width < 10 or c_height < 10:
+        c_width, c_height = 1000, 500
+
+    padding_x = 40
+    padding_y = 40
+
+    ast_width = c_width - 2 * padding_x
+    ast_height = c_height - 2 * padding_y
+
+    n_leaves = subtree_size(ast)
+    n_levels = ast_depth(ast)
+
+    base_h_spacing = 150
+    base_v_spacing = 100
+
+    scale_x = ast_width / (n_leaves * base_h_spacing)
+    scale_y = ast_height / (n_levels * base_v_spacing)
+
+    scale = min(scale_x, 1.0)
+    vscale = min(scale_y, 1.0)
+
+    center_x = c_width // 2
+    top_y = padding_y
+
+    draw_ast(canvas, ast,
+             center_x, top_y,
+             n_leaves * base_h_spacing * scale,
+             scale, vscale)
 
 
+
+# -------------------- GLOBAL STORAGE ---------------------
+current_file_content = ""
+
+############################### Read input file and clear data ############################# 
 def openFile(file_text):
+    global current_file_content
     filepath = filedialog.askopenfilename()
     if not filepath:
         return
     with open(filepath, 'r') as file:
         content = file.read()
+    current_file_content = content
     file_text.delete("1.0", tk.END)
     file_text.insert(tk.END, content)
 
 def clear_data():
+    global current_file_content
+    current_file_content = ""
     canvas.delete("all")
     file_text.delete("1.0", tk.END)
+
+############################### Get the parse tree from src code ###########################
+
+def get_parse_tree():
+    global current_file_content
+    if not current_file_content.strip():
+        print("No program loaded.")
+        return
+
+    print("Parsing program:")
+    print(current_file_content)
+
+    # ast = from controller
+    # fit_and_draw_ast(canvas, ast)
 
 
 ################################### Main Tkinter window ####################################
@@ -228,14 +323,15 @@ mainframe = ttk.Frame(root, padding=(3, 3, 12, 12))
 mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
 
 tree_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
-tree_frame.grid(column=1, row=0, sticky=(N, E,W, S))
+tree_frame.grid(column=1, row=0, sticky=(N, E, W, S))
+tree_frame.columnconfigure(0, weight=1)
+tree_frame.rowconfigure(1, weight=1)
+
+canvas = tk.Canvas(tree_frame, bg="white")
+canvas.grid(column=0, row=1, sticky="nsew")
 
 input_file_frame = ttk.Frame(mainframe, padding=(3, 3, 12, 12))
 input_file_frame.grid(column=0, row=0, sticky=(N, E,W, S))
-
-canvas = tk.Canvas(tree_frame, width=1000, height=500, bg="white")
-canvas.grid(column=0,row=1,sticky="nsew")
-
 
 root.columnconfigure(0, weight=1)
 root.rowconfigure(0, weight=1)
@@ -244,17 +340,15 @@ mainframe.columnconfigure(0, weight=1)
 mainframe.columnconfigure(1, weight=3)  
 mainframe.rowconfigure(0, weight=1)
 
-
 tree_frame.columnconfigure(0, weight=1)
 tree_frame.rowconfigure(1, weight=1)
-
 
 input_file_frame.columnconfigure(0, weight=1)
 input_file_frame.columnconfigure(1, weight=1)
 input_file_frame.rowconfigure(1, weight=1)
 
-
 ################# Input file content and scrollbar ########################
+
 file_frame = ttk.Frame(input_file_frame)
 file_frame.grid(column=0, row=1, columnspan=2, sticky="nsew", pady=(10,0))
 
@@ -264,17 +358,37 @@ scrollbar = ttk.Scrollbar(file_frame, orient="vertical", command=file_text.yview
 scrollbar.pack(side="right", fill="y")
 file_text.config(yscrollcommand=scrollbar.set)
 
-
 ################################ Buttons ################################
-choose_file_button = ttk.Button(input_file_frame,text="choose file", command= lambda: openFile(file_text),padding=(3))
+choose_file_button = ttk.Button(input_file_frame,text="choose file",
+                                command=lambda: openFile(file_text),padding=(3))
 choose_file_button.grid(column=0,row=0,sticky=(N,W), padx=(0,10))
 
-clear_button = ttk.Button(input_file_frame,text="clear", command= lambda: clear_data(),padding=(3))
+clear_button = ttk.Button(input_file_frame,text="clear",
+                          command=lambda: clear_data(),padding=(3))
 clear_button.grid(column=1,row=0,sticky=(N,E))
 
-ast_to_draw = AST 
+draw_button = ttk.Button(input_file_frame,text="Draw Parse Tree",
+                          command=lambda:get_parse_tree(),padding=(3))
+draw_button.grid(column=0,row=2,columnspan=2, sticky="nsew", pady=(10,0))
 
-full_width = subtree_size(ast_to_draw) * 150
-draw_ast(canvas, ast_to_draw, 500, 50, full_width)
+
+# Build the StatementSequence as in the test
+read_stmt = ReadStatementNode("x")
+id_stmt = IdentifierNode("x")
+const_stmt = ConstantNode(1)
+opnode = OperatorNode("+", id_stmt, const_stmt)
+assign_stmt = AssignmentStatementNode("x", opnode)
+write_stmt = WriteStatementNode(opnode)
+program = StatementSequence([read_stmt, assign_stmt, write_stmt])
+
+# Convert to JSON for the GUI
+ast_to_draw = program.to_json()
+
+def on_canvas_resize(event):
+    fit_and_draw_ast(canvas, ast_to_draw)
+
+canvas.bind("<Configure>", on_canvas_resize)
+
+fit_and_draw_ast(canvas, ast_to_draw)
 
 root.mainloop()
