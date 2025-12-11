@@ -1,0 +1,76 @@
+The Parser Project
+I.Project Description:
+•Given the TINY grammar rules you should implement the TINY parser using recursive
+descent method.
+You will need to convert grammar into EBNF form.
+The output will be a complete syntax tree of the input source program
+•
+•
+II.
+Inputs :
+•List of ( tokenvalue,tokentype)
+Example:
+x ,IDENTIFIER
+:=, ASSIGN
+4,NUMBER
+•The input list should follow the same syntax as mentioned in the previous
+example tokenvalue , tokentype
+•
+•Input list can be input through GUI textbox or by loading a text file
+List of token types in tiny language
+
+III.
+Output:
+1. State whether the statements are accepted by TINY language or not
+2. Draw Syntax tree on a GUI based application
+3. IF you do not support GUI ( and will lose GUI marks) you can output recognized
+structures by the TINY language parser into a file or on the console screen ( like
+drawing the syntax tree by describing it using statement names)
+
+
+
+Chapter3: Context-free
+Grammars and Parsing
+(part2_continue)
+TUTORIAL 6Tiny Language:
+• In TINY there are two basic kinds of structures: statements and expressions.
+• There are five kinds of statements:
+o if-statements
+o repeat-statements
+o assign-statements
+o read-statements
+o write-statements
+• There are three kinds of expressions:
+o operator-expression
+o constant expressions
+o identifier expressionsGrammar rules of tiny language:
+1) program→ stmt-sequence
+2) stmt-sequence → stmt-sequence ; statement | statement
+3) statement→ if- stmt |repeat-stmt | assign-stmt | read-stmt | write-stmt
+4) if -stmt → if exp then stmt-sequence end
+|if exp then stmt-sequence else stmt-sequence end
+5) repeat -stmt → repeat stmt-sequence until exp
+6) assign -stmt → identifier := exp
+7) read -stmt → read identifier
+8) write -stmt → write exp
+9) exp → simple-exp comparison-op simple-exp | simple-exp
+10) comparison-op → < | =
+11) simple-exp → simple-exp addop term | term
+12) addop → + | -
+13) term → term mulop factor | factor
+14) mulop → * | /
+15) factor → (exp) | number | identifierExplanation of some rules:
+2) stmt-sequence → stmt-sequence ; statement | statement
+Note: statements are separated by semicolons;
+Semicolon is a statement separator not terminator.
+5) repeat -stmt → repeat stmt-sequence until exp
+Note: repeat statement acts as do while loop
+7) read -stmt → read identifier
+Note: read statement to input data (like cin in c++)
+8) write -stmt → write exp
+Note: write statement to output data (like cout in c++)
+9) exp → simple-exp comparison-op simple-exp | simple-exp
+note: we don’t allow multiple comparison-op in same exp in our tiny language:
+(Example: x+1 < 3 < 2) Not allowed: that’s why there is not recursion
+For Rules [9-15]: <, = has least precedence (closer to the root) , then +,- have higher precedence
+Then *, / have the highest precedence
