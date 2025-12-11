@@ -193,13 +193,18 @@ def draw_ast(canvas, node, x, y, width, scale=1.0, vscale=1.0, parent_x=None, pa
 
     # Node label
     if t == "BinaryExpression":
-        label = node.get("operator", "op")
+        label = f"op ({node.get('operator', 'op')})"
     elif t == "Literal":
-        label = str(node.get("value"))
+        label = f"const ({node.get('value')})"
     elif t == "Identifier":
-        label = node.get("name")
+        label = f"id ({node.get('name')})"
     elif t == "Assignment":
         label = f"assign({node.get('identifier')})"
+    elif t == "ReadStatement":
+        label = f"read({node.get('identifier')})"
+    elif t == "WriteStatement":
+        # Always show 'write' as label, child will show the variable/expression
+        label = "write"
     else:
         label = t
 
@@ -223,6 +228,8 @@ def draw_ast(canvas, node, x, y, width, scale=1.0, vscale=1.0, parent_x=None, pa
     elif t == "BinaryExpression":
         children = [node["left"], node["right"]]
     elif t == "Assignment":
+        children = [node["value"]]
+    elif t == "WriteStatement":
         children = [node["value"]]
     else:
         children = []
@@ -378,7 +385,7 @@ id_stmt = IdentifierNode("x")
 const_stmt = ConstantNode(1)
 opnode = OperatorNode("+", id_stmt, const_stmt)
 assign_stmt = AssignmentStatementNode("x", opnode)
-write_stmt = WriteStatementNode(opnode)
+write_stmt = WriteStatementNode(IdentifierNode("x"))
 program = StatementSequence([read_stmt, assign_stmt, write_stmt])
 
 # Convert to JSON for the GUI
