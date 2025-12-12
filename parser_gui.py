@@ -5,6 +5,7 @@ import tkinter as tk
 import tkinter.font as tkFont
 from src.parse.parser import Parser
 from src.parse.syntax_tree import ReadStatementNode, IdentifierNode, ConstantNode, OperatorNode, AssignmentStatementNode, WriteStatementNode, StatementSequence
+from src.parse.token_file_parser import TokenFileParser
 
 # Example ASTs
 IF_AST = {
@@ -83,6 +84,8 @@ NODE_SHAPES = {
     "Identifier": "oval",
     "FunctionCall": "oval",
 }
+
+filepath = ""
 
 # --- compute subtree size (for layout) ---
 def subtree_size(node):
@@ -291,9 +294,11 @@ def fit_and_draw_ast(canvas, ast):
 # -------------------- GLOBAL STORAGE ---------------------
 current_file_content = ""
 
-############################### Read input file and clear data ############################# 
+############################### Read input file and clear data #############################
+
 def openFile(file_text):
-    global current_file_content
+    global current_file_conten
+    global filepath
     filepath = filedialog.askopenfilename()
     if not filepath:
         return
@@ -312,18 +317,14 @@ def clear_data():
 ############################### Get the parse tree from src code ###########################
 
 def get_parse_tree():
-    global current_file_content
-    if not current_file_content.strip():
-        print("No program loaded.")
-        return
-
-    print("Parsing program:")
-    print(current_file_content)
 
     # ast = from controller
-    program = Parser.parse(current_file_content)
+    token_parser = TokenFileParser()
+    token_stream = token_parser.parse_file(filepath=filepath)
+    parser = Parser(token_stream)
+    program = parser.parse()
     ast_json = program.to_json()
-    # fit_and_draw_ast(canvas, ast)
+    fit_and_draw_ast(canvas, ast_json)
 
 
 ################################### Main Tkinter window ####################################
