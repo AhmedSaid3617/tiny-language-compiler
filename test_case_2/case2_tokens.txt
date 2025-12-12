@@ -1,8 +1,3 @@
-TINY Language Scanner Output
-=============================
-
-Token Value         Token Type          
-----------------------------------------
 read                READ                
 x                   IDENTIFIER          
 ;                   SEMICOLON           
